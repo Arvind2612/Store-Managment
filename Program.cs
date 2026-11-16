@@ -6,9 +6,36 @@ using Microsoft.OpenApi;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+using I.Service;
+using U.Service;
+using Serilog;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .WriteTo.Console()
+    .WriteTo.File(
+        "Logs/log-.txt",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 30,
+        outputTemplate:
+        "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}")
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
+// Add services to the container.
 
 // 1. Add Controllers
 builder.Services.AddControllers();
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
+builder.Services.AddScoped<IUserService, UserService>();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // 2. Configure JWT Settings
 builder.Services.Configure<Jwtsettings>(
@@ -77,6 +104,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+
 }
 
 app.UseHttpsRedirection();
@@ -90,3 +118,11 @@ app.MapControllers();
 
 // 11. Run Application
 app.Run();
+try
+{
+    app.Run();
+}
+finally
+{
+    Log.CloseAndFlush();
+}
